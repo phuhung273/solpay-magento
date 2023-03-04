@@ -9,21 +9,25 @@ define(
         'Magento_Checkout/js/view/payment/default',
         'Magento_Checkout/js/model/payment/additional-validators',
         'Magento_Customer/js/customer-data',
+        'ko',
         'solpay'
     ],
-    function (Component, additionalValidators, customerData) {
+    function (Component, additionalValidators, customerData, ko) {
         'use strict';
 
         return Component.extend({
             defaults: {
                 template: 'HungTran_Solpay/payment/form',
-                transactionResult: ''
+                transactionResult: '',
+                wallet: ko.observable(null),
+                payer: ko.observable(null),
             },
 
             initObservable: function () {
                 this._super()
                     .observe([
-                        'transactionResult'
+                        'transactionResult',
+                        'from',
                     ]);
                 return this;
             },
@@ -59,11 +63,37 @@ define(
                 });
             },
 
-            continueToPhantom: function () {
+            getProvider: function () {
+                if (this.payer()) {
+                    return;
+                }
+
+                if ('phantom' in window) {
+                    const provider = window.phantom?.solana;
+
+                    if (provider?.isPhantom) {
+                        return this.wallet(provider);
+                    }
+                }
+
+                window.open('https://phantom.app/', '_blank');
+            },
+
+            continueToPhantom: async function () {
                 if (additionalValidators.validate()) {
                     customerData.invalidate(['cart']);
 
-                    solpay.callSolana();
+                    this.getProvider();
+                    const provider = this.wallet();
+
+                    // TODO: Don't connect again
+                    const resp = await provider.connect();
+                    const from = resp.publicKey.toString();
+                    this.payer(from);
+
+                    solpay.signAndConfirmTransaction(this.wallet(), from, 'CwjFqyHh29QC9pSFJAF8ieQaTPX7MzhQV3oUQiAhyowj').catch(err => {
+                        console.log('Error connecting Phantom: ', err);
+                    })
 
                     return false;
                 }
