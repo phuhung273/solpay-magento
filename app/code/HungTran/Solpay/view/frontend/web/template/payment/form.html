@@ -24,20 +24,18 @@
             <!--/ko-->
         </div>
 
-        <div class="field required">
-            <label data-bind="attr: {for: getCode() + '_transaction_result'}" class="label">
-                <span><!-- ko i18n: 'Transaction Result'--><!-- /ko --></span>
-            </label>
-
-            <div class="control">
-                <select name="payment[transaction_result]" class="select" data-bind="
-                                  options: getTransactionResults(),
-                                  optionsValue: 'value',
-                                  optionsText: 'transaction_result',
-                                  optionsCaption: $t('Transaction Result'),
-                                  value: transactionResult">
-                </select>
-            </div>
+        <div class="field">
+            <button class="action primary" data-bind="
+                        click: chooseAccount,
+                        attr: {title: $t('Choose an account')},
+                        css: {disabled: !isPlaceOrderActionAllowed()},
+                        enable: (getCode() == isChecked())
+                        " disabled>
+                <span data-bind="if: payer">
+                    <span data-bind="text: payer"></span>
+                </span>
+                <span data-bind="ifnot: payer">Choose an account</span>
+            </button>
         </div>
 
         <div class="actions-toolbar">

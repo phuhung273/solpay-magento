@@ -79,19 +79,38 @@ define(
                 window.open('https://phantom.app/', '_blank');
             },
 
+            chooseAccount: async function () {
+                if (this.wallet() !== null) {
+                    return;
+                }
+
+                this.getProvider();
+                const provider = this.wallet();
+
+                // TODO: Don't connect again
+                const resp = await provider.connect();
+                const from = resp.publicKey.toString();
+                this.payer(from);
+
+                provider.on('accountChanged', (publicKey) => {
+                    if (publicKey) {
+                        this.payer(publicKey.toString());
+                    } else {
+                        this.payer(null);
+                        provider.connect().catch((error) => {
+                            console.log('Error switching account: ', err);
+                        });
+                    }
+                });
+            },
+
             continueToPhantom: async function () {
                 if (additionalValidators.validate()) {
                     customerData.invalidate(['cart']);
 
-                    this.getProvider();
-                    const provider = this.wallet();
+                    // Validate wallet, from
 
-                    // TODO: Don't connect again
-                    const resp = await provider.connect();
-                    const from = resp.publicKey.toString();
-                    this.payer(from);
-
-                    solpay.signAndConfirmTransaction(this.wallet(), from, 'CwjFqyHh29QC9pSFJAF8ieQaTPX7MzhQV3oUQiAhyowj').catch(err => {
+                    solpay.signAndConfirmTransaction(this.wallet(), this.payer(), 'CwjFqyHh29QC9pSFJAF8ieQaTPX7MzhQV3oUQiAhyowj').catch(err => {
                         console.log('Error connecting Phantom: ', err);
                     })
 
